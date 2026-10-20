@@ -32,6 +32,27 @@ describe('parseStatus', () => {
     (body) => expect(parseStatus(withFrontMatter(body))).toBe('draft'),
   );
 
+  it.each([
+    ['status: "appr\\u006fved"'],
+    ['status: |-\n  approved'],
+    ['status: >-\n  approved'],
+    ['status:\n  approved'],
+    ['? status\n: approved'],
+    ['{status: approved}'],
+    ['"status": approved'],
+    ['status: "approved" extra'],
+  ])('bentuk YAML yang tidak terbaca jelas sebagai approved ditolak: %s', (body) =>
+    expect(parseStatus(withFrontMatter(body))).toBe('draft'),
+  );
+
+  it('front matter kosong yang diikuti blok kedua ditolak', () =>
+    expect(parseStatus('---\n---\nstatus: approved\n---\n# PRD')).toBe('draft'));
+
+  it.each([["status: 'approved'"], ['status: approved # disetujui pemilik'], ['status: approved\nowner: awwal']])(
+    'bentuk polos, kutip, dan komentar tetap approved: %s',
+    (body) => expect(parseStatus(withFrontMatter(body))).toBe('approved'),
+  );
+
   it('tanpa front matter atau tidak di awal menghasilkan draft', () => {
     expect(parseStatus('# PRD\n\nstatus: approved')).toBe('draft');
     expect(parseStatus('\n' + withFrontMatter('status: approved'))).toBe('draft');

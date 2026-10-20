@@ -2,6 +2,15 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { isMap, isScalar, parseDocument } from 'yaml';
 
+/** Penanda dokumen YAML di dalam front matter: berarti ada blok kedua yang bisa menyamarkan isi. */
+const DOCUMENT_MARKER = /^(?:---|\.\.\.)(?:\s|$)/m;
+
+/** Bentuk teks sumber yang diterima untuk nilai disetujui: polos atau dikutip tanpa escape. */
+const APPROVED_SOURCES = new Set(['approved', '"approved"', "'approved'"]);
+
+/** Pemisah kunci dan nilai yang diterima: titik dua lalu spasi pada baris yang sama. */
+const SAME_LINE_SEPARATOR = /^[ \t]*:[ \t]+$/;
+
 /** Status satu dokumen gerbang: `approved`, `draft`, atau `missing` (berkas tidak ada). */
 export type GateStatus = 'approved' | 'draft' | 'missing';
 
@@ -28,14 +37,24 @@ export function parseStatus(markdown: string | undefined): GateStatus {
     const match = FRONT_MATTER.exec(text);
     if (!match) return 'draft';
 
-    const document = parseDocument(match[1] ?? '', { uniqueKeys: true, strict: true });
+    const body = match[1] ?? '';
+    if (DOCUMENT_MARKER.test(body)) return 'draft';
+    const document = parseDocument(body, { uniqueKeys: true, strict: true });
     if (document.errors.length > 0 || document.warnings.length > 0) return 'draft';
-    if (!isMap(document.contents)) return 'draft';
+    const root = document.contents;
+    if (!isMap(root) || root.flow) return 'draft';
 
-    const node = document.contents.get('status', true);
-    if (!isScalar(node) || node.tag !== undefined || node.anchor !== undefined) return 'draft';
-    const value: unknown = node.value;
-    return value === 'approved' ? 'approved' : 'draft';
+    // Hanya bentuk `status: approved` pada satu baris yang dihitung. Nilai dibandingkan lewat teks
+    // sumbernya, bukan nilai hasil parse, agar escape (`\u006f`), block scalar, nilai di baris
+    // berikutnya, kunci eksplisit, dan kunci dikutip tidak lolos.
+    for (const pair of root.items) {
+      const { key, value } = pair;
+      if (!isScalar(key) || !key.range || body.slice(key.range[0], key.range[1]) !== 'status') continue;
+      if (!isScalar(value) || !value.range || value.tag !== undefined || value.anchor !== undefined) return 'draft';
+      if (!SAME_LINE_SEPARATOR.test(body.slice(key.range[1], value.range[0]))) return 'draft';
+      return APPROVED_SOURCES.has(body.slice(value.range[0], value.range[1])) && value.value === 'approved' ? 'approved' : 'draft';
+    }
+    return 'draft';
   } catch {
     return 'draft';
   }
