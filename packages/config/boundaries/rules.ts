@@ -108,6 +108,13 @@ export function buildForbiddenRules(edges: AllowedEdges): IForbiddenRuleType[] {
     },
     ...undeclaredEdgeRules,
     {
+      name: 'no-unresolvable',
+      severity: 'error',
+      comment: 'Impor yang tidak dapat di-resolve tidak bisa diperiksa batasnya; perbaiki impornya, jangan dilewati.',
+      from: {},
+      to: { couldNotResolve: true },
+    },
+    {
       name: 'no-circular',
       severity: 'error',
       comment: 'Tidak boleh ada siklus impor, termasuk di dalam satu modul.',

@@ -43,6 +43,13 @@ export async function runBoundaries(root: string): Promise<BoundaryReport> {
       ruleSet: { forbidden: buildForbiddenRules(edges) },
       exclude: { path: EXCLUDED_PATHS },
       doNotFollow: { path: 'node_modules' },
+      // Modul adalah paket workspace (`@finance/<modul>`): impor lewat nama paket harus di-resolve
+      // lewat `exports` agar tetap terlihat oleh aturan batas, bukan dilewati sebagai "tak ditemukan".
+      enhancedResolveOptions: {
+        exportsFields: ['exports'],
+        conditionNames: ['import', 'require', 'node', 'default'],
+        extensions: ['.ts', '.tsx', '.mts', '.cts', '.js', '.jsx', '.mjs', '.cjs', '.json'],
+      },
     },
   );
 

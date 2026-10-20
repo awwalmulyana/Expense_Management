@@ -56,7 +56,7 @@ describe('aturan batas modul', () => {
     expect(() => assertAcyclic(edges)).not.toThrow();
   });
 
-  it('memuat sembilan nama aturan', () => {
+  it('memuat sepuluh nama aturan', () => {
     const names = new Set(buildForbiddenRules(edges).map((rule) => rule.name));
     expect([...names].sort()).toEqual(
       [
@@ -68,6 +68,7 @@ describe('aturan batas modul', () => {
         'no-circular',
         'no-module-internals',
         'no-undeclared-module-edge',
+        'no-unresolvable',
         'packages-no-modules-or-apps',
       ].sort(),
     );
