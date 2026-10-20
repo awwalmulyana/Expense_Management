@@ -33,6 +33,11 @@ function namingRule(allowPascalCase) {
 /** @type {import('eslint').Linter.Config[]} */
 export default [
   {
+    // Komentar eslint-disable/enable dan `/* eslint rule: ... */` di dalam kode diabaikan: aturan hanya
+    // bisa diubah lewat konfigurasi ini (milik pemilik, CODEOWNERS), bukan oleh agent di tengah berkas.
+    linterOptions: { noInlineConfig: true },
+  },
+  {
     files: ['**/*.ts', '**/*.tsx'],
     languageOptions: { parser: tseslint.parser },
     plugins: { '@typescript-eslint': tseslint.plugin, jsdoc },

@@ -39,3 +39,16 @@ describe('komentar fungsi (TSDoc)', () => {
   it('callback inline dikecualikan', async () => expect(await lint('[1].map((x) => x);', 'a.ts')).not.toContain(DOC));
   it('berkas tes dikecualikan', async () => expect(await lint('export function add() {}', 'a.test.ts')).not.toContain(DOC));
 });
+
+describe('konfigurasi tidak dapat dilonggarkan dari dalam kode', () => {
+  it('komentar eslint-disable tidak mematikan aturan', async () => {
+    expect(await lint('/* eslint-disable */\nconst user_name = 1;', 'a.ts')).toContain(NAMING);
+    expect(await lint('// eslint-disable-next-line\nconst user_name = 1;', 'a.ts')).toContain(NAMING);
+  });
+
+  it('folder bernama fixtures di luar packages/config tetap di-lint', async () => {
+    const eslint = new ESLint({ cwd: repoRoot });
+    expect(await eslint.isPathIgnored(resolve(repoRoot, 'modules/transactions/src/fixtures/a.ts'))).toBe(false);
+    expect(await eslint.isPathIgnored(resolve(repoRoot, 'packages/config/fixtures/boundaries/valid/a.ts'))).toBe(true);
+  });
+});

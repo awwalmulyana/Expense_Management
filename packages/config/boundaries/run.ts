@@ -1,6 +1,7 @@
 import { existsSync } from 'node:fs';
 import { join } from 'node:path';
 import { cruise, type ICruiseResult } from 'dependency-cruiser';
+import { findConformanceIssues } from './conformance';
 import { assertAcyclic, buildForbiddenRules, findUnlistedModules, loadAllowedEdges } from './rules';
 
 /** Satu pelanggaran batas modul. */
@@ -14,10 +15,12 @@ export interface BoundaryViolation {
 export interface BoundaryReport {
   violations: BoundaryViolation[];
   unlistedModules: string[];
+  /** Temuan kesesuaian workspace (ESLint lokal, skrip wajib, tsconfig longgar). */
+  conformance: string[];
 }
 
 const SOURCE_FOLDERS = ['apps', 'modules', 'packages'] as const;
-const EXCLUDED_PATHS = ['(^|/)fixtures/', '(^|/)node_modules/', '(^|/)dist/', '(^|/)\\.next/', '(^|/)\\.turbo/', '(^|/)coverage/'];
+const EXCLUDED_PATHS = ['^packages/config/fixtures/', '(^|/)node_modules/', '(^|/)dist/', '(^|/)\\.next/', '(^|/)\\.turbo/', '(^|/)coverage/'];
 
 /**
  * Memeriksa batas modul pada satu pohon repo.
@@ -30,8 +33,9 @@ export async function runBoundaries(root: string): Promise<BoundaryReport> {
   const edges = loadAllowedEdges();
   assertAcyclic(edges);
   const unlistedModules = findUnlistedModules(root, edges);
+  const conformance = findConformanceIssues(root);
   const folders = SOURCE_FOLDERS.filter((folder) => existsSync(join(root, folder)));
-  if (folders.length === 0) return { violations: [], unlistedModules };
+  if (folders.length === 0) return { violations: [], unlistedModules, conformance };
 
   // Folder diberikan relatif terhadap baseDir; dependency-cruiser menggabungkan keduanya sendiri.
   const { output } = await cruise(
@@ -57,5 +61,5 @@ export async function runBoundaries(root: string): Promise<BoundaryReport> {
   const violations = result.summary.violations
     .filter((violation) => violation.rule.severity === 'error')
     .map((violation) => ({ rule: violation.rule.name, from: violation.from, to: violation.to }));
-  return { violations, unlistedModules };
+  return { violations, unlistedModules, conformance };
 }

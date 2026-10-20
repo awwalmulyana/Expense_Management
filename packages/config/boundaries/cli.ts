@@ -10,16 +10,18 @@ import { runBoundaries } from './run';
 async function main(): Promise<number> {
   const defaultRoot = resolve(fileURLToPath(import.meta.url), '../../../..');
   const root = process.argv[2] ? resolve(process.argv[2]) : defaultRoot;
-  const { violations, unlistedModules } = await runBoundaries(root);
+  const { violations, unlistedModules, conformance } = await runBoundaries(root);
 
   for (const violation of violations) {
     console.error(`[${violation.rule}] ${violation.from} -> ${violation.to}`);
   }
   for (const name of unlistedModules) {
-    console.error(`[unlisted-module] modules/${name} belum terdaftar di packages/config/boundaries/allowed-edges.json`);
+    console.error(`[unlisted-module] modules/${name} belum terdaftar di packages/config/boundaries/allowed-edges.json (atau bukan folder modul)`);
   }
 
-  const total = violations.length + unlistedModules.length;
+  for (const issue of conformance) console.error(`[conformance] ${issue}`);
+
+  const total = violations.length + unlistedModules.length + conformance.length;
   if (total > 0) {
     console.error(`Batas modul dilanggar: ${total} temuan.`);
     return 1;

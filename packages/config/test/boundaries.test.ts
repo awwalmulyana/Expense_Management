@@ -56,7 +56,7 @@ describe('aturan batas modul', () => {
     expect(() => assertAcyclic(edges)).not.toThrow();
   });
 
-  it('memuat sepuluh nama aturan', () => {
+  it('memuat sebelas nama aturan', () => {
     const names = new Set(buildForbiddenRules(edges).map((rule) => rule.name));
     expect([...names].sort()).toEqual(
       [
@@ -64,6 +64,7 @@ describe('aturan batas modul', () => {
         'apps-only-public-door',
         'apps-web-no-modules',
         'contracts-leaf',
+        'modules-closed-world',
         'modules-not-to-apps',
         'no-circular',
         'no-module-internals',

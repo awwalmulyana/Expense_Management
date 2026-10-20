@@ -47,16 +47,17 @@ export function assertAcyclic(edges: AllowedEdges): void {
 }
 
 /**
- * Mencari folder di `modules/` yang belum didaftarkan pada `edges`.
+ * Mencari isi `modules/` yang bukan folder modul terdaftar: folder yang belum didaftarkan pada `edges`,
+ * serta berkas biasa dan symlink (berkas tersembunyi diabaikan).
  * @param root - Akar repo (atau akar fixture).
  * @param edges - Peta modul terdaftar.
- * @returns Nama folder modul tak terdaftar, terurut.
+ * @returns Nama entri tak terdaftar, terurut.
  */
 export function findUnlistedModules(root: string, edges: AllowedEdges): string[] {
   const modulesDir = join(root, 'modules');
   if (!existsSync(modulesDir)) return [];
   return readdirSync(modulesDir, { withFileTypes: true })
-    .filter((entry) => entry.isDirectory() && !(entry.name in edges))
+    .filter((entry) => !entry.name.startsWith('.') && (!entry.isDirectory() || !(entry.name in edges)))
     .map((entry) => entry.name)
     .sort();
 }
@@ -107,6 +108,17 @@ export function buildForbiddenRules(edges: AllowedEdges): IForbiddenRuleType[] {
       to: { path: MODULE_INTERNAL },
     },
     ...undeclaredEdgeRules,
+    {
+      name: 'modules-closed-world',
+      severity: 'error',
+      comment: 'Modul hanya boleh mengimpor modul, packages/, pustaka npm, atau modul inti Node; perantara di luar itu dapat mencuci impor (apps/ ditangani modules-not-to-apps).',
+      from: { path: '^modules/' },
+      to: {
+        pathNot: '^(modules|packages|apps)/',
+        couldNotResolve: false,
+        dependencyTypesNot: ['core', 'npm', 'npm-dev', 'npm-optional', 'npm-peer', 'npm-no-pkg', 'npm-unknown'],
+      },
+    },
     {
       name: 'no-unresolvable',
       severity: 'error',
