@@ -4,6 +4,9 @@ import { read } from './helpers';
 
 const REQUIRED_PATHS = ['/docs/', '/CLAUDE.md', '/.claude/', '/packages/config/', '/.github/', '/eslint.config.js', '/turbo.json', '/package.json'];
 
+/** Berkas yang dibaca `pnpm install` / toolchain di CI; PR yang mengubahnya dapat menjalankan kode sebelum review. */
+const INSTALL_TIME_PATHS = ['/pnpm-lock.yaml', '/pnpm-workspace.yaml', '/.npmrc', '/.pnpmfile.cjs', '/tsconfig.json', '/.nvmrc', '/.gitignore'];
+
 interface Rule {
   type: string;
   parameters?: Record<string, unknown> & { required_status_checks?: { context: string }[] };
@@ -58,6 +61,10 @@ describe('CODEOWNERS', () => {
       expect(entry[0]).toMatch(/^@[A-Za-z0-9](?:[A-Za-z0-9]|-(?=[A-Za-z0-9])){0,38}$/);
     }
     expect(new Set(owners.map((entry) => entry[0])).size).toBe(1);
+  });
+
+  it('berkas yang dibaca pnpm install dan toolchain juga dimiliki pemilik', () => {
+    for (const pattern of INSTALL_TIME_PATHS) expect(ownersOf(pattern), pattern).toHaveLength(1);
   });
 
   it('tidak memakai placeholder', () => {
@@ -126,5 +133,13 @@ describe('runbook pemilik', () => {
     const text = read('docs/runbooks/apply-gates.md');
     expect(text).toContain('status: approved');
     expect(text).toMatch(/tidak (dapat|bisa) menyetujui PR (miliknya|buatannya) sendiri/);
+  });
+});
+
+describe('runbook: batas kepercayaan workflow', () => {
+  it('menyatakan workflow yang diubah di PR berjalan sebelum review dan membatasi environment ke main', () => {
+    const text = read('docs/runbooks/apply-gates.md');
+    expect(text).toContain('sebelum direview');
+    expect(text).toMatch(/branch.*main/is);
   });
 });

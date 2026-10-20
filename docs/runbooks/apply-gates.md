@@ -57,7 +57,7 @@ Agent harus bekerja dengan identitas **berbeda dari kamu**. GitHub tidak mengizi
 - **GitHub App** (disarankan): dibuat di Settings, Developer settings, GitHub Apps, lalu dipasang hanya pada repo ini.
 - **Akun mesin**: akun GitHub terpisah sebagai collaborator dengan peran Write, dengan token fine-grained terbatas pada repo ini.
 
-Izin minimum: **Contents** (read dan write), **Pull requests** (read dan write), **Metadata** (read). Tanpa Administration. Tanpa akses ke environment `production` dan secret-nya. Izin **Workflows** hanya bila DevOps agent boleh mengubah workflow lewat PR (tetap butuh review pemilik karena `.github/` ada di CODEOWNERS). Token disimpan di komputer atau secret sesi, tidak pernah di repo.
+Izin minimum: **Contents** (read dan write), **Pull requests** (read dan write), **Metadata** (read). Tanpa Administration. Tanpa akses ke environment `production` dan secret-nya. Izin **Workflows** hanya bila DevOps agent boleh mengubah workflow lewat PR. Perhatikan batasnya: workflow yang diubah di PR dari repo yang sama berjalan **sebelum direview**, dengan izin dan secret yang ditentukan workflow itu sendiri; review code owner hanya menahan merge, bukan eksekusinya. Karena itu secret production tidak boleh dapat dijangkau dari PR, dan environment `staging` dibatasi ke branch `main` (Settings, Environments, staging, Deployment branches and tags). Token disimpan di komputer atau secret sesi, tidak pernah di repo.
 
 ## E. Vercel
 

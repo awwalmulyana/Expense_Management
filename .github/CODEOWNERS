@@ -10,3 +10,11 @@
 /turbo.json @awwalmulyana
 /package.json @awwalmulyana
 /.gitleaks.toml @awwalmulyana
+# Dibaca pnpm install dan toolchain di CI: perubahan di sini dapat menjalankan kode sebelum review.
+/pnpm-lock.yaml @awwalmulyana
+/pnpm-workspace.yaml @awwalmulyana
+/.npmrc @awwalmulyana
+/.pnpmfile.cjs @awwalmulyana
+/tsconfig.json @awwalmulyana
+/.nvmrc @awwalmulyana
+/.gitignore @awwalmulyana

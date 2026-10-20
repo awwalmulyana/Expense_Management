@@ -120,3 +120,12 @@ describe('workflow CI', () => {
     expect(ci().jobs.security?.steps[0]?.with?.['fetch-depth']).toBe(0);
   });
 });
+
+describe('turbo.json', () => {
+  it('berkas akar yang dibaca tes config menjadi globalDependencies, agar PR yang mengubahnya tidak melewati tes', () => {
+    const turbo = JSON.parse(read('turbo.json')) as { globalDependencies?: string[] };
+    expect(turbo.globalDependencies).toEqual(
+      expect.arrayContaining(['.github/**', '.claude/**', 'CLAUDE.md', 'docs/**', 'pnpm-workspace.yaml', 'tsconfig.json', '.nvmrc', 'eslint.config.js']),
+    );
+  });
+});
