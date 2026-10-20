@@ -1,3 +1,5 @@
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
 import { isMap, isScalar, parseDocument } from 'yaml';
 
 /** Status satu dokumen gerbang: `approved`, `draft`, atau `missing` (berkas tidak ada). */
@@ -37,4 +39,37 @@ export function parseStatus(markdown: string | undefined): GateStatus {
   } catch {
     return 'draft';
   }
+}
+
+/** Lokasi dokumen gerbang relatif terhadap akar repo. */
+export const GATE_DOCS = { prd: 'docs/prd/prd.md', design: 'docs/design/design.md' } as const;
+
+/**
+ * Membaca status satu berkas gerbang dari disk.
+ * Berkas yang tidak ada menghasilkan `missing`; kesalahan baca lain (izin, direktori) dilempar
+ * agar pemanggil gagal-tertutup.
+ * @param filePath - Path berkas dokumen gerbang.
+ * @returns Status hasil `parseStatus`.
+ * @throws Error bila berkas ada tetapi tidak dapat dibaca.
+ */
+export function readGateStatus(filePath: string): GateStatus {
+  try {
+    return parseStatus(readFileSync(filePath, 'utf8'));
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code === 'ENOENT') return parseStatus(undefined);
+    throw error;
+  }
+}
+
+/**
+ * Membaca status PRD dan design dari sebuah akar repo.
+ * @param projectDir - Akar repo.
+ * @returns Status kedua dokumen gerbang.
+ * @throws Error bila salah satu berkas ada tetapi tidak dapat dibaca.
+ */
+export function readPhaseStatuses(projectDir: string): PhaseStatuses {
+  return {
+    prd: readGateStatus(join(projectDir, GATE_DOCS.prd)),
+    design: readGateStatus(join(projectDir, GATE_DOCS.design)),
+  };
 }

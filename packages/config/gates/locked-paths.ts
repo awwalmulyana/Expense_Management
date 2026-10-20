@@ -1,5 +1,5 @@
 import { posix } from 'node:path';
-import type { PhaseStatuses } from './status';
+import { GATE_DOCS, type PhaseStatuses } from './status';
 
 const DESIGN_SYSTEM_PREFIXES = ['packages/design-system/'];
 const BUILD_PREFIXES = ['modules/', 'apps/', 'packages/contracts/', 'packages/kernel/'];
@@ -46,4 +46,20 @@ export function isLocked(repoRelativePath: string, statuses: PhaseStatuses): boo
  */
 export function findViolations(changedFiles: string[], statuses: PhaseStatuses): string[] {
   return changedFiles.filter((file) => isLocked(file, statuses));
+}
+
+/**
+ * Alasan satu kalimat bila gerbang belum terbuka.
+ * @param statuses - Status PRD dan design.
+ * @param upTo - `prd` hanya memeriksa PRD; `design` memeriksa PRD lalu design.
+ * @returns Kalimat alasan, atau `null` bila gerbang yang diminta sudah terbuka.
+ */
+export function unmetGateReason(statuses: PhaseStatuses, upTo: 'prd' | 'design'): string | null {
+  if (statuses.prd !== 'approved') {
+    return `PRD belum approved (${GATE_DOCS.prd}: ${statuses.prd}); setujui PRD sebelum melanjutkan.`;
+  }
+  if (upTo === 'design' && statuses.design !== 'approved') {
+    return `Design belum approved (${GATE_DOCS.design}: ${statuses.design}); setujui design sebelum membangun.`;
+  }
+  return null;
 }

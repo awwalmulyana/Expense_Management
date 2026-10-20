@@ -11,7 +11,9 @@
     "typecheck": "turbo run typecheck",
     "test": "turbo run test",
     "test:integration": "turbo run test:integration",
-    "boundaries": "tsx packages/config/boundaries/cli.ts"
+    "boundaries": "tsx packages/config/boundaries/cli.ts",
+    "gate:require": "tsx packages/config/gates/cli.ts require",
+    "gate:check": "tsx packages/config/gates/cli.ts check"
   },
   "devDependencies": {
     "@types/node": "^22.20.5",
