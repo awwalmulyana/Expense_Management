@@ -152,3 +152,16 @@ jobs:
         uses: gitleaks/gitleaks-action@ff98106e4c7b2bc287b24eaf42907196329070c7 # v2.3.9
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Tampilkan lokasi temuan gitleaks sebagai anotasi
+        if: failure()
+        run: |
+          python3 - <<'PY'
+          import json, os
+          path = 'results.sarif'
+          if not os.path.exists(path):
+              raise SystemExit('results.sarif tidak ditemukan')
+          for result in json.load(open(path))['runs'][0].get('results', []):
+              loc = result['locations'][0]['physicalLocation']
+              sha = result.get('partialFingerprints', {}).get('commitSha', '?')[:7]
+              print(f"::error file={loc['artifactLocation']['uri']},line={loc['region']['startLine']}::gitleaks {result['ruleId']} (commit {sha})")
+          PY
