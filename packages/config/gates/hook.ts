@@ -14,8 +14,8 @@ import { readFileSync, realpathSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { isLocked, unmetGateReason } from './locked-paths';
-import { toRepoRelative } from './paths';
-import { readPhaseStatuses } from './status';
+import { resolveTargetRoots } from './paths';
+import { readPhaseStatuses, type PhaseStatuses } from './status';
 
 /** Keputusan hook: izinkan, atau tolak dengan alasan untuk Claude. */
 export type HookDecision = { allow: true } | { allow: false; reason: string };
@@ -62,13 +62,28 @@ export function decideHook(stdin: string, projectDir: string): HookDecision {
     return deny('Input hook tidak memuat file_path atau notebook_path; penulisan ditolak (gagal-tertutup).');
   }
 
-  const repoRelative = toRepoRelative(rawPath, projectDir);
-  if (repoRelative === null) return { allow: true };
+  const projectStatuses = readPhaseStatuses(projectDir);
+  for (const { root, relative } of resolveTargetRoots(rawPath, projectDir)) {
+    const statuses = root === projectDir ? projectStatuses : stricter(projectStatuses, readPhaseStatuses(root));
+    if (!isLocked(relative, statuses)) continue;
+    const reason = unmetGateReason(statuses, 'design') ?? 'Gerbang fase tertutup.';
+    return deny(`Ditolak: ${relative} terkunci. ${reason}`);
+  }
+  return { allow: true };
+}
 
-  const statuses = readPhaseStatuses(projectDir);
-  if (!isLocked(repoRelative, statuses)) return { allow: true };
-  const reason = unmetGateReason(statuses, 'design') ?? 'Gerbang fase tertutup.';
-  return deny(`Ditolak: ${repoRelative} terkunci. ${reason}`);
+/**
+ * Menggabungkan dua set status dengan mengambil yang lebih ketat: sebuah gerbang terbuka
+ * hanya bila `approved` di kedua sisi (akar proyek dan worktree).
+ * @param project - Status dari akar proyek.
+ * @param worktree - Status dari worktree.
+ * @returns Status gabungan.
+ */
+function stricter(project: PhaseStatuses, worktree: PhaseStatuses): PhaseStatuses {
+  return {
+    prd: project.prd === 'approved' ? worktree.prd : project.prd,
+    design: project.design === 'approved' ? worktree.design : project.design,
+  };
 }
 
 /**

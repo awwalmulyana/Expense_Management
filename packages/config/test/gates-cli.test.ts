@@ -1,4 +1,4 @@
-import { spawnSync } from 'node:child_process';
+import { execFileSync, spawnSync } from 'node:child_process';
 import { mkdirSync, mkdtempSync, realpathSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -147,5 +147,85 @@ describe('hook PreToolUse', () => {
     const result = hookRawIn(JSON.stringify({ tool_input: { file_path: `${broken}/modules/a.ts` } }), broken);
     expect(result.status).toBe(2);
     expect(result.stderr).toContain('gagal');
+  });
+});
+
+describe('hook di dalam git worktree', () => {
+  /**
+   * Menjalankan git di sebuah repo uji tanpa bergantung pada konfigurasi pengguna.
+   * @param cwd - Direktori kerja.
+   * @param args - Argumen git.
+   */
+  function git(cwd: string, ...args: string[]): void {
+    execFileSync('git', ['-c', 'user.email=t@t', '-c', 'user.name=t', '-c', 'commit.gpgsign=false', ...args], { cwd, stdio: 'ignore' });
+  }
+
+  /**
+   * Membuat repo git sungguhan dengan satu commit berisi dokumen gerbang.
+   * @param statuses - Status dokumen gerbang.
+   * @returns Path nyata repo.
+   */
+  function gitRepo(statuses: Statuses): string {
+    const dir = makeRepo(statuses);
+    git(dir, 'init', '-q', '-b', 'main');
+    git(dir, 'add', '-A');
+    git(dir, 'commit', '-q', '-m', 'init');
+    return dir;
+  }
+
+  /**
+   * Menanyakan hook untuk menulis `modules/x/a.ts` di sebuah akar.
+   * @param root - Akar tempat berkas berada.
+   * @param projectDir - Nilai CLAUDE_PROJECT_DIR.
+   * @returns Hasil proses hook.
+   */
+  function editModule(root: string, projectDir: string) {
+    return hookRawIn(JSON.stringify({ tool_input: { file_path: `${root}/modules/x/a.ts` } }), projectDir);
+  }
+
+  it('memblokir worktree di dalam .claude/worktrees saat PRD draft', () => {
+    const repo = gitRepo({ prd: 'draft' });
+    const worktree = join(repo, '.claude/worktrees/w1');
+    git(repo, 'worktree', 'add', '-q', '-b', 'w1', worktree);
+    const result = editModule(worktree, repo);
+    expect(result.status).toBe(2);
+    expect(result.stderr).toContain('terkunci');
+  });
+
+  it('memblokir worktree saudara (di luar folder repo) saat PRD draft', () => {
+    const repo = gitRepo({ prd: 'draft' });
+    const sibling = `${repo}-wt`;
+    git(repo, 'worktree', 'add', '-q', '-b', 'w2', sibling);
+    expect(editModule(sibling, repo).status).toBe(2);
+  });
+
+  it('memblokir path baru (belum ada) di worktree', () => {
+    const repo = gitRepo({ prd: 'draft' });
+    const sibling = `${repo}-wt2`;
+    git(repo, 'worktree', 'add', '-q', '-b', 'w3', sibling);
+    const result = hookRawIn(JSON.stringify({ tool_input: { file_path: `${sibling}/modules/baru/dalam/a.ts` } }), repo);
+    expect(result.status).toBe(2);
+  });
+
+  it('memakai status yang lebih ketat antara worktree dan proyek', () => {
+    const repo = gitRepo({ prd: 'draft' });
+    const sibling = `${repo}-wt3`;
+    git(repo, 'worktree', 'add', '-q', '-b', 'w4', sibling);
+    writeDoc(join(sibling, 'docs/prd/prd.md'), 'approved');
+    writeDoc(join(sibling, 'docs/design/design.md'), 'approved');
+    expect(editModule(sibling, repo).status).toBe(2);
+  });
+
+  it('mengizinkan worktree bila gerbang approved di kedua sisi', () => {
+    const repo = gitRepo({ prd: 'approved', design: 'approved' });
+    const sibling = `${repo}-wt4`;
+    git(repo, 'worktree', 'add', '-q', '-b', 'w5', sibling);
+    expect(editModule(sibling, repo).status).toBe(0);
+  });
+
+  it('tetap mengizinkan repo git lain yang tidak terkait', () => {
+    const repo = gitRepo({ prd: 'draft' });
+    const other = gitRepo({ prd: 'draft' });
+    expect(editModule(other, repo).status).toBe(0);
   });
 });
