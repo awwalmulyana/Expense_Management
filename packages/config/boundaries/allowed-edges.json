@@ -1,0 +1,7 @@
+{
+  "identity": [],
+  "accounts": [],
+  "transactions": ["accounts"],
+  "budgets": ["transactions"],
+  "reporting": ["accounts", "transactions", "budgets"]
+}
