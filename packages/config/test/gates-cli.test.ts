@@ -127,7 +127,7 @@ describe('hook PreToolUse', () => {
     expect(result.stderr).toContain('esign');
   });
   it('mengizinkan docs/prd saat draft', () =>
-    expect(hookRawIn(JSON.stringify({ tool_input: { file_path: `${tmp}/docs/prd/prd.md` } }), tmp).status).toBe(0));
+    expect(hookRawIn(JSON.stringify({ tool_input: { file_path: `${tmp}/docs/prd/prd.md`, old_string: '# Dokumen', new_string: '# PRD' } }), tmp).status).toBe(0));
   it('mengizinkan path di luar repo', () =>
     expect(hookRawIn(JSON.stringify({ tool_input: { file_path: '/etc/hosts' } }), tmp).status).toBe(0));
   it('mengizinkan semuanya bila kedua gerbang approved', () =>
@@ -228,4 +228,52 @@ describe('hook di dalam git worktree', () => {
     const other = gitRepo({ prd: 'draft' });
     expect(editModule(other, repo).status).toBe(0);
   });
+});
+
+describe('hook melindungi gerbang itu sendiri', () => {
+  const repo = makeRepo({ prd: 'draft', design: 'draft' });
+
+  /**
+   * Menjalankan hook untuk satu pemanggilan tool.
+   * @param toolName - Nama tool.
+   * @param toolInput - Isi `tool_input`.
+   * @returns Hasil proses hook.
+   */
+  function call(toolName: string, toolInput: Record<string, unknown>) {
+    return hookRawIn(JSON.stringify({ tool_name: toolName, tool_input: toolInput }), repo);
+  }
+
+  const prd = `${repo}/docs/prd/prd.md`;
+  const design = `${repo}/docs/design/design.md`;
+
+  it('menolak Write yang membuat PRD menjadi approved', () => {
+    const result = call('Write', { file_path: prd, content: '---\nstatus: approved\n---\n# PRD\n' });
+    expect(result.status).toBe(2);
+    expect(result.stderr).toContain('approved');
+  });
+
+  it('menolak Edit yang mengubah draft menjadi approved pada design', () =>
+    expect(call('Edit', { file_path: design, old_string: 'status: draft', new_string: 'status: approved' }).status).toBe(2));
+
+  it('menolak MultiEdit yang berujung approved', () =>
+    expect(
+      call('MultiEdit', { file_path: prd, edits: [{ old_string: '# Dokumen', new_string: '# PRD' }, { old_string: 'status: draft', new_string: 'status: approved' }] }).status,
+    ).toBe(2));
+
+  it('mengizinkan Write yang tetap draft dan Edit isi dokumen', () => {
+    expect(call('Write', { file_path: prd, content: '---\nstatus: draft\n---\n# PRD baru\n' }).status).toBe(0);
+    expect(call('Edit', { file_path: prd, old_string: '# Dokumen', new_string: '# Judul' }).status).toBe(0);
+  });
+
+  it('gagal-tertutup bila isi hasil tulis tidak dapat dihitung', () =>
+    expect(call('Write', { file_path: prd }).status).toBe(2));
+
+  it('menolak menulis settings.local.json yang bisa mematikan hook', () => {
+    const result = call('Write', { file_path: `${repo}/.claude/settings.local.json`, content: '{"disableAllHooks": true}' });
+    expect(result.status).toBe(2);
+    expect(result.stderr).toContain('settings.local.json');
+  });
+
+  it('mengizinkan menulis settings.json biasa (dijaga CODEOWNERS, bukan hook)', () =>
+    expect(call('Write', { file_path: `${repo}/.claude/settings.json`, content: '{}' }).status).toBe(0));
 });
