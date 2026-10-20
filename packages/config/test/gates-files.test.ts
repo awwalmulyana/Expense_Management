@@ -65,6 +65,19 @@ describe('CODEOWNERS', () => {
   });
 });
 
+describe('konfigurasi gitleaks', () => {
+  it('memperluas aturan bawaan dan hanya mengecualikan pola yang disebut', () => {
+    const text = read('.gitleaks.toml');
+    expect(text).toContain('useDefault = true');
+    expect(text).toContain('environments/production');
+    expect(text).not.toMatch(/paths\s*=/);
+  });
+
+  it('dimiliki pemilik lewat CODEOWNERS', () => {
+    expect(ownersOf('/.gitleaks.toml')).toHaveLength(1);
+  });
+});
+
 describe('ruleset main protection', () => {
   it('aktif, tanpa bypass, menargetkan branch default', () => {
     const set = ruleset();
@@ -104,7 +117,7 @@ describe('ruleset main protection', () => {
 describe('runbook pemilik', () => {
   it('memuat langkah pemilik', () => {
     const text = read('docs/runbooks/apply-gates.md');
-    for (const needle of ['gh api', 'environments/production', 'GitHub App', 'akun mesin', 'gate-check', 'rulesets', 'required reviewer']) {
+    for (const needle of ['environments/production', 'GitHub App', 'akun mesin', 'gate-check', 'rulesets', 'required reviewer', 'gh api']) {
       expect(text).toContain(needle);
     }
   });

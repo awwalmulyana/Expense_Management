@@ -1,0 +1,10 @@
+# Konfigurasi gitleaks untuk job `security` (dimiliki pemilik lewat CODEOWNERS).
+# Memperluas aturan bawaan; hanya satu pola yang dikecualikan.
+title = "Aplikasi Keuangan Pribadi"
+
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Teks tes dan arsip rencana: kata 'api' bersebelahan dengan nama path environment terbaca seperti API key, padahal bukan secret."
+regexes = ['''environments/production''']
