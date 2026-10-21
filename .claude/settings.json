@@ -1,0 +1,16 @@
+{
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Edit|Write|MultiEdit|NotebookEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "pnpm exec tsx \"$CLAUDE_PROJECT_DIR/packages/config/gates/hook.ts\"",
+            "onFailure": "block"
+          }
+        ]
+      }
+    ]
+  }
+}

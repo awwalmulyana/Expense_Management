@@ -1,0 +1,20 @@
+# Pemilik repo. Berkas yang membatasi agent dimiliki pemilik, supaya agent tidak bisa
+# melonggarkan aturan yang membatasinya (spec 8.4 dan 14.1). Semua perubahan di sini
+# butuh review pemilik (ruleset: require_code_owner_review).
+/docs/ @awwalmulyana
+/CLAUDE.md @awwalmulyana
+/.claude/ @awwalmulyana
+/packages/config/ @awwalmulyana
+/.github/ @awwalmulyana
+/eslint.config.js @awwalmulyana
+/turbo.json @awwalmulyana
+/package.json @awwalmulyana
+/.gitleaks.toml @awwalmulyana
+# Dibaca pnpm install dan toolchain di CI: perubahan di sini dapat menjalankan kode sebelum review.
+/pnpm-lock.yaml @awwalmulyana
+/pnpm-workspace.yaml @awwalmulyana
+/.npmrc @awwalmulyana
+/.pnpmfile.cjs @awwalmulyana
+/tsconfig.json @awwalmulyana
+/.nvmrc @awwalmulyana
+/.gitignore @awwalmulyana

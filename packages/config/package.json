@@ -1,0 +1,25 @@
+{
+  "name": "@finance/config",
+  "private": true,
+  "type": "module",
+  "exports": {
+    "./eslint": "./eslint/index.js"
+  },
+  "scripts": {
+    "lint": "eslint .",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:integration": "vitest run -c vitest.integration.config.ts"
+  },
+  "devDependencies": {
+    "@types/pg": "^8.23.1",
+    "dependency-cruiser": "^18.7.0",
+    "eslint": "^9.39.5",
+    "eslint-plugin-jsdoc": "^65.3.15",
+    "typescript-eslint": "^8.72.0"
+  },
+  "dependencies": {
+    "pg": "^8.23.1",
+    "yaml": "^2.9.1"
+  }
+}
