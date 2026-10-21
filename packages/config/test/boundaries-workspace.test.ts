@@ -87,4 +87,17 @@ describe('impor lewat nama paket workspace', () => {
     });
     expect(await rules(root)).toEqual(['no-unresolvable']);
   });
+
+  it('akar yang diakses lewat symlink (seperti /var -> /private/var di macOS) diperiksa sama ketatnya', async () => {
+    const root = workspaceTree(['accounts', 'transactions'], {
+      'modules/accounts/src/use.ts': "import { x } from '@finance/transactions';\nexport const z = x;\n",
+      'apps/api/src/main.ts': "import { y } from '@finance/accounts/domain/thing';\nexport const w = y;\n",
+    });
+    const aliasDir = mkdtempSync(join(tmpdir(), 'bnd-alias-'));
+    created.push(aliasDir);
+    const alias = join(aliasDir, 'repo');
+    symlinkSync(root, alias, 'dir');
+    expect(await rules(alias)).toEqual(await rules(root));
+    expect(await rules(alias)).toEqual(['apps-only-public-door', 'no-undeclared-module-edge']);
+  });
 });
