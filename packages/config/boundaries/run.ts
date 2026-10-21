@@ -1,4 +1,4 @@
-import { existsSync } from 'node:fs';
+import { existsSync, realpathSync } from 'node:fs';
 import { join } from 'node:path';
 import { cruise, type ICruiseResult } from 'dependency-cruiser';
 import { findConformanceIssues } from './conformance';
@@ -25,11 +25,14 @@ const EXCLUDED_PATHS = ['^packages/config/fixtures/', '(^|/)node_modules/', '(^|
 /**
  * Memeriksa batas modul pada satu pohon repo.
  * Impor tipe (`tsPreCompilationDeps`), `import()` dinamis, dan `export * from` ikut dihitung.
- * @param root - Akar repo (atau akar fixture) yang berisi `apps/`, `modules/`, `packages/`.
+ * @param inputRoot - Akar repo (atau akar fixture) yang berisi `apps/`, `modules/`, `packages/`; boleh berupa symlink.
  * @returns Pelanggaran aturan dan modul yang belum terdaftar di `allowed-edges.json`.
  * @throws Error bila `allowed-edges.json` memiliki siklus.
  */
-export async function runBoundaries(root: string): Promise<BoundaryReport> {
+export async function runBoundaries(inputRoot: string): Promise<BoundaryReport> {
+  // dependency-cruiser menyelesaikan symlink menjadi path nyata; bila akar sendiri berada di balik symlink
+  // (misalnya /var -> /private/var di macOS) path hasilnya tidak lagi cocok dengan aturan `^modules/`.
+  const root = realpathSync(inputRoot);
   const edges = loadAllowedEdges();
   assertAcyclic(edges);
   const unlistedModules = findUnlistedModules(root, edges);
