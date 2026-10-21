@@ -143,3 +143,24 @@ describe('runbook: batas kepercayaan workflow', () => {
     expect(text).toMatch(/branch.*main/is);
   });
 });
+
+describe('runbook: identitas agent dan prasyarat ruleset', () => {
+  const text = (): string => read('docs/runbooks/apply-gates.md');
+
+  it('akun mesin memakai token classic scope repo, bukan fine-grained', () => {
+    expect(text()).toMatch(/token classic[^.]*`repo`/);
+    expect(text()).not.toMatch(/Akun mesin[^\n]*token fine-grained terbatas/);
+  });
+
+  it('menyebut syarat repo public atau GitHub Pro untuk ruleset', () => {
+    expect(text()).toMatch(/GitHub Pro/);
+    expect(text()).toMatch(/public/);
+  });
+
+  it('identitas agent disiapkan sebelum ruleset diterapkan', () => {
+    const order = text().slice(text().indexOf('## A.'), text().indexOf('## B.'));
+    expect(order.indexOf('identitas agent')).toBeGreaterThan(-1);
+    expect(order.indexOf('Terapkan ruleset')).toBeGreaterThan(-1);
+    expect(order.indexOf('identitas agent')).toBeLessThan(order.indexOf('Terapkan ruleset'));
+  });
+});
